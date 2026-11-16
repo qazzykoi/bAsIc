@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>bAsIc</title>
+    <script type="py" src="./bot.py"></script>
+    <!-- PyScript for Python in HTML -->
+    <link rel="stylesheet" href="https://pyscript.net">
+    <script type="module" src="https://pyscript.net"></script>
+    
+    <!-- Tesseract.js for reading screenshots/images locally without API keys -->
+    <script src="https://jsdelivr.net"></script>
+
+    <style>
+        body { font-family: sans-serif; max-width: 700px; margin: 30px auto; padding: 20px; background: #121212; color: #fff; }
+        #chat-box { border: 1px solid #333; padding: 15px; height: 420px; overflow-y: auto; border-radius: 8px; background: #1e1e1e; margin-bottom: 12px; }
+        .msg { margin-bottom: 14px; line-height: 1.5; word-wrap: break-word; }
+        .user { color: #4da6ff; font-weight: bold; }
+        .bot { color: #66ff99; }
+        .tag { font-size: 11px; background: #333; color: #bbb; padding: 2px 6px; border-radius: 4px; margin-right: 6px; text-transform: uppercase; }
+        .preview-img { max-width: 220px; max-height: 150px; border-radius: 6px; margin-top: 6px; display: block; border: 1px solid #444; }
+        
+        #file-banner { display: none; background: #262626; padding: 8px 12px; border-radius: 6px; margin-bottom: 10px; font-size: 13px; color: #ffcc66; justify-content: space-between; align-items: center; }
+        #file-banner button { background: transparent; color: #ff6666; border: none; font-weight: bold; cursor: pointer; padding: 0 5px; }
+
+        .input-group { display: flex; gap: 8px; align-items: center; }
+        .upload-btn { background: #2c2c2c; color: #fff; border: 1px solid #444; padding: 12px 14px; border-radius: 5px; cursor: pointer; font-size: 18px; }
+        .upload-btn:hover { background: #3a3a3a; }
+        input[type="text"] { flex: 1; padding: 12px; border-radius: 5px; border: none; font-size: 15px; }
+        button.send-btn { padding: 12px 20px; border-radius: 5px; border: none; background: #66ff99; color: #000; font-weight: bold; cursor: pointer; font-size: 15px; }
+        button.send-btn:hover { background: #52cc7a; }
+    </style>
+</head>
+<body>
+
+    <h2>🧠 Universal Study & Slang AI</h2>
+    <div id="chat-box">
+        <div class="msg bot"><b>AI:</b> Yo! Ask me literally ANY school subject, drop a math equation, or click 📎 to upload a screenshot/file of your homework!</div>
+    </div>
+
+    <!-- Attached File Indicator -->
+    <div id="file-banner">
+        <span id="file-name">📎 Attached: none</span>
+        <button onclick="clearFile()">✖</button>
+    </div>
+
+    <div class="input-group">
+        <!-- Hidden File Input -->
+        <input type="file" id="fileInput" accept="image/*,.txt,.md,.csv,.py,.js,.html,.json" style="display: none;" onchange="handleFileSelect(event)">
+        <button class="upload-btn" title="Add file or screenshot" onclick="document.getElementById('fileInput').click()">📎</button>
+        
+        <input type="text" id="topicInput" placeholder="Ask any question or add a note about your file..." py-keydown="handle_enter">
+        <button class="send-btn" py-click="ask_bot">Ask</button>
+    </div>
+
+    <!-- JavaScript Helper for Reading Files & Screenshots (OCR) -->
+    <script>
+        window.attachedFileText = "";
+        window.attachedImageURL = "";
+        window.attachedFileName = "";
+
+        function clearFile() {
+            window.attachedFileText = "";
+            window.attachedImageURL = "";
+            window.attachedFileName = "";
+            document.getElementById("fileInput").value = "";
+            document.getElementById("file-banner").style.display = "none";
+        }
+
+        async function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const banner = document.getElementById("file-banner");
+            const fileNameSpan = document.getElementById("file-name");
+            banner.style.display = "flex";
+            window.attachedFileName = file.name;
+
+            if (file.type.startsWith("image/")) {
+                fileNameSpan.innerText = `⏳ Scanning screenshot (${file.name})...`;
+                window.attachedImageURL = URL.createObjectURL(file);
+                
+                // Run local OCR to extract text from screenshot
+                try {
+                    const result = await Tesseract.recognize(file, 'eng');
+                    window.attachedFileText = result.data.text.trim();
+                    fileNameSpan.innerText = `🖼️ Screenshot ready: ${file.name}`;
+                } catch (err) {
+                    window.attachedFileText = "";
+                    fileNameSpan.innerText = `⚠️ Could not read text in ${file.name}`;
+                }
+            } else {
+                // Read plain text / code files
+                window.attachedImageURL = "";
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    window.attachedFileText = e.target.result;
+                    fileNameSpan.innerText = `📄 File ready: ${file.name}`;
+                };
+                reader.readAsText(file);
+            }
+        }
+    </script>
